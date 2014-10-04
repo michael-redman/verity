@@ -1,0 +1,22 @@
+drop table inodes;
+create table inodes(
+	device bigint not null,
+	inode bigint not null,
+	ctime bigint not null,
+	mode integer not null,
+	uid integer not null,
+	gid integer not null,
+	mtime bigint not null,
+	content text);
+alter table inodes add constraint inode_identifier unique (device,inode,ctime);
+create index inodes_content_index on inodes(content);
+drop table paths;
+create table paths(
+	path text not null,
+	xtime bigint not null,
+	device bigint, --null means nothing at path on fs
+	inode bigint, --garbage if device is null
+	ctime bigint --garbage if device is null
+	);
+alter table paths add constraint path_identifier unique (path,xtime);
+create index paths_inode_identifier_index on paths(device,inode,ctime);

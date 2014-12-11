@@ -3,8 +3,7 @@ exec_prefix?=$(prefix)
 
 QUERY_TYPE?=JOIN
 
-LIBS=libhmac_of_file.so libread_whole_file.so
-LIBEXECS=list_hmacs paths_of_hmacs
+LIBEXECS=list_hashes paths_of_hashes
 SCRIPTS=content_diff expire_and_clean
 DOCS=COPYRIGHT LICENSE README
 
@@ -19,10 +18,10 @@ clean:
 lib%.so: %.c
 	cc -c -fpic -shared -Wall -g -o $@ $<
 
-index_paths: index_paths.c
-	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -lhmac_of_file -lread_whole_file -o $@  $<
+index_paths: index_paths.c sha256_of_file.c
+	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
 
-paths_of_hmacs: paths_of_hmacs.c
+paths_of_hashes: paths_of_hashes.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -o $@  $<
 
 install:

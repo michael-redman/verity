@@ -1,4 +1,4 @@
-#define USE "paths_of_hmacs [-p /path/prefix] [-t as-of-time_t] [-s] 'db connection string' < hmac_list"
+#define USE "paths_of_hashes [-p /path/prefix] [-t as-of-time_t] [-s] 'db connection string' < hmac_list"
 
 #include <arpa/inet.h>
 #include <libpq-fe.h>
@@ -28,7 +28,7 @@
 #define SQL1		"order by xtime desc limit 1"
 
 int main(int argc, char ** argv){
-	char hmac[2*SHA_DIGEST_LENGTH+2], flag=0, *sql, *params[4];
+	char hmac[2*SHA256_DIGEST_LENGTH+2], flag=0, *sql, *params[4];
 	PGconn *db;
 	PGresult *result;
 	uint32_t l;
@@ -51,7 +51,7 @@ int main(int argc, char ** argv){
 	if	(params[3])
 		{ l=htonl(strlen(params[3])); params[2]=(char *)&l; }
 	while(!feof(stdin)){
-		if (!(params[0]=fgets(hmac,2*SHA_DIGEST_LENGTH+2,stdin))) break;
+		if (!(params[0]=fgets(hmac,2*SHA256_DIGEST_LENGTH+2,stdin))) break;
 		c=strlen(hmac)-1;
 		if (hmac[c]=='\n') hmac[c]='\0';
 		if	(params[3])

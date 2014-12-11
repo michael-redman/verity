@@ -1,4 +1,4 @@
-#define USE "list_hmacs [-p /path/prefix] [-t as-of-time_t] 'db connection string'"
+#define USE "list_hashes [-p /path/prefix] [-t as-of-time_t] 'db connection string'"
 
 #define _GNU_SOURCE
 

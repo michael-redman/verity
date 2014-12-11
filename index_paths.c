@@ -1,4 +1,4 @@
-#define USE "index_paths [-a] 'db conn string' /path/to/key_file < path_list"
+#define USE "index_paths [-a] 'db conn string' < path_list"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -24,13 +24,7 @@
 #include "err.h"
 #include "etch_x86_hack.h"
 
-extern int hmac_of_file (
-	const unsigned char * const key,
-	const unsigned int key_len,
-	const char * const path,
-	unsigned char digest[SHA_DIGEST_LENGTH]);
-
-extern int read_whole_file (char const * const path, unsigned char **buf, unsigned int *data_size);
+extern char sha256_of_file (char const * const, unsigned char[SHA256_DIGEST_LENGTH]);
 
 static int insert_path
 	(PGconn *db, char const * const path, uint64_t device, uint64_t inode, uint64_t ctime)
@@ -59,19 +53,15 @@ int main(int argc, char ** argv){
 	PGconn *db;
 	PGresult *result;
 	char path[PATH_MAX+1], inode_content[PATH_MAX+1];
-	unsigned char hmac_binary[SHA_DIGEST_LENGTH], *key, flags=0;
-	unsigned int key_len=0;
+	unsigned char hmac_binary[SHA256_DIGEST_LENGTH], flags=0;
 	uint64_t device, inode, ctime, mtime;
 	uint32_t mode, user, group;
 	struct stat st;
 	size_t s;
 	if(getopt(argc,argv,"a")=='a') flags=1;
-	if (argc-optind!=2) { fputs(USE "\n",stderr); exit(EXIT_FAILURE); }
-	ENGINE_load_builtin_engines();
-	ENGINE_register_all_complete();
+	if (argc-optind!=1) { fputs(USE "\n",stderr); exit(EXIT_FAILURE); }
 	db=PQconnectdb(argv[optind]);
 	if(PQstatus(db)!=CONNECTION_OK){ fputs(PQerrorMessage(db),stderr); AT; goto err0; }
-	if (read_whole_file(argv[optind+1],&key,&key_len)){ AT; goto err0; }
 	while(!feof(stdin)){
 		if(!fgetsnull(path,PATH_MAX+1,stdin)) break;
 		result=PQexec(db,"begin");
@@ -139,8 +129,8 @@ int main(int argc, char ** argv){
 								{	if	(PQgetisnull(result,0,4))
 										{	fprintf(stderr,"Error: inode record content should not be null for inode type regular file, at device %lu inode %lu ctime %lu path %s\n",(unsigned long)st.st_dev,st.st_ino,st.st_ctime,path);
 											goto err2; }
-									if (hmac_of_file( (const unsigned char *)key, key_len,path,hmac_binary)) goto err2;
-									hexbytes_print(hmac_binary,SHA_DIGEST_LENGTH,inode_content);
+									if (sha256_of_file(path,hmac_binary)) goto err2;
+									hexbytes_print(hmac_binary,SHA256_DIGEST_LENGTH,inode_content);
 									if	(strcmp(inode_content,PQgetvalue(result,0,4)))
 										{	fprintf(stderr,"Error: regular file hmac mismatch, at device %lu inode %lu ctime %lu path %s, fs has %s, db has %s\n",(unsigned long)st.st_dev,st.st_ino,st.st_ctime,path,inode_content,PQgetvalue(result,0,4));
 											goto err2; }}}
@@ -199,8 +189,8 @@ int main(int argc, char ** argv){
 										if (s==-1) {perror(path); AT; goto err1; }
 										inode_content[s]='\0'; }
 								if	(S_ISREG(st.st_mode))
-									{	if (hmac_of_file( (const unsigned char *)key, key_len,path,hmac_binary)) goto err1;
-										hexbytes_print(hmac_binary,SHA_DIGEST_LENGTH,inode_content); }
+									{	if (sha256_of_file(path,hmac_binary)) goto err1;
+										hexbytes_print(hmac_binary,SHA256_DIGEST_LENGTH,inode_content); }
 								result=PQexecParams(db,
 									"insert into inodes (device,inode,ctime,mode,uid,gid,mtime,content) values ($1,$2,$3,$4,$5,$6,$7,$8)",
 									8,NULL,
@@ -234,12 +224,11 @@ int main(int argc, char ** argv){
 		end0:	result=PQexec(db,"end");
 			SQLCHECK(db,result,PGRES_COMMAND_OK,err2);
 			PQclear(result); }
-	free(key);
 	PQfinish(db);
 	ENGINE_cleanup();
 	exit(EXIT_SUCCESS);
 	err2:	PQclear(result);
-	err1:	free(key);
+	err1:
 	err0:	PQfinish(db);
 		ENGINE_cleanup();
 		exit(EXIT_FAILURE); }

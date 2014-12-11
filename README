@@ -8,7 +8,7 @@ Verity comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable 
 
 ABOUT
 
-Verity maintains a database of HMAC signatures of files you feed it and shows you what content was present when.
+Verity maintains a database of hashes of files you feed it and shows you what content was present when.
 
 LIMITATIONS
 
@@ -17,8 +17,6 @@ Verity uses kernel device numbers to determine which files are hardlinked.  If d
 Verity depends on the correctness of inode ctimes - and therefore the system clock - to know when it needs to re-index an inode.
 
 Verity ignores sockets, fifos, and device special files.
-
-Verity is not cryptographically secure because it uses the deprecated SHA-1 algorithm for calculating HMAC signatures.
 
 INSTALLING
 
@@ -70,11 +68,11 @@ OTHER COMMANDS
 
 verity_list_paths lists paths already in the database.  Use as in the example above.
 
-verity_content_diff tells you what HMAC signatures are new/missing between two trees you specify at two times you specify.  Example:
+verity_content_diff tells you what hashes are new/missing between two trees you specify at two times you specify.  Example:
 
 you@yourhost:~$ verity_content_diff dbname=verity_example_db /mnt/verity/ `date -d '20130101 0000' +%s` /mnt/verity-backup/ `date -d '20140101 0000' +%s`
 
-For each HMAC in the diff, verity_content_diff will also print the path with the specified prefix where that HMAC was most recently indexed, up to the later of the specified times.  The printed path may have since been indexed as dead or containing different content.  Only one path will be printed for each HMAC even if the data set contained more than one mathcing path.
+For each hash in the diff, verity_content_diff will also print the path with the specified prefix where that hash was most recently indexed, up to the later of the specified times.  The printed path may have since been indexed as dead or containing different content.  Only one path will be printed for each hash even if the data set contained more than one mathcing path.
 
 The output of verity_content_diff is null delimited.  Use "tr \\0 \\n" to make it human-readable.
 

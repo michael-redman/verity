@@ -45,7 +45,7 @@ you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes-git1
 
 USE EXAMPLE
 
-you@yourhost:~$ { find ~ -type f -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths dbname=verity_example_db <(echo -n "my passphrase")
+you@yourhost:~$ { find ~ -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths dbname=verity_example_db <(echo -n "my passphrase")
 
 This will index everything in your home dir, plus all paths already existing in the db (to check if the files there were deleted).
 

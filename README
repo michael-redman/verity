@@ -45,20 +45,11 @@ you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes-git1
 
 USE EXAMPLE
 
-you@yourhost:~$ { find ~ -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths dbname=verity_example_db <(echo -n "my passphrase")
+you@yourhost:~$ { find ~ -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths -p ~ dbname=verity_example_db <(echo -n "my passphrase")
 
-This will index everything in your home dir, plus all paths already existing in the db (to check if the files there were deleted).
+This will index everything in your home dir, plus all paths in your home dir already existing in the db (to check if the files there were deleted), with the "sort -uz" (sort and list only unique lines) on the concatenated lists of paths, ensuring each path is only indexed once.
 
 Note the list of paths is delimited by nulls not newlines.  You have to use "find -print0" like in the example not just "find".
-
-The example command used "sort -uz" (sort and list only unique lines) on the concatenated lists of paths, to ensure each path is only indexed once.
-
-The second argument to verity_index_paths is a filename to read the passphrase from.  The example uses shell process substitution to read the passphrase from the command line.  If you are on a multi-user system and want to type your passphrase without having it show up in the output of "ps", use the get_passphrase script to read it into a shell variable:
-
-you@yourhost:~$ . /usr/local/share/verity/get_passphrase
-you@yourhost:~$ passphrase=`get_passphrase`
-
-then put the variable inside the double-quotes in the example, e.g. <(echo -n "$passphrase")
 
 Inodes with unchanged ctimes are not re-hashed by default.  You can force re-hash with "verity_index_paths -a"
 

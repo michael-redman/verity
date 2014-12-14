@@ -1,4 +1,4 @@
-#define USE "list_paths [-p /path/prefix] [-t as-of-time_t] [-i] 'db connection string'"
+#define USE "list_paths [-p /path/prefix] [-t as-of-time_t] 'db connection string'"
 
 #define _GNU_SOURCE
 
@@ -17,7 +17,6 @@
 #define SQL_DECLARE	"declare paths_cursor cursor for select paths.path "
 
 #ifndef CORRELATED_SUBQUERY
-#define JOIN0		",mode,uid,gid,mtime,content "
 #define JOIN1			"from "\
 				"paths "\
 				"join "\
@@ -35,12 +34,7 @@
 				"paths.device is not null"
 				//possible PREFIX_SQL
 #else
-#define SQ0	",(select mode from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mode, "\
-		"(select uid from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as uid, "\
-		"(select gid from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as gid, "\
-		"(select mtime from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mtime, "\
-		"(select content from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as content "
-#define SQ1	" from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=%ld) "
+#define SQ0	"from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<=%ld) "
 		//possible PREFIX_SQL
 #endif
 
@@ -50,10 +44,8 @@ int main(int argc, char ** argv){
 	unsigned int l;
 	char *prefix=NULL, *prefix_escaped, *sql, *sql_f;
 	time_t t=time(NULL);
-	unsigned char flag=0;
 	int c;
 	while ((c=getopt(argc,argv,"ip:t:"))!=-1){ switch(c){
-		case 'i': flag=1;
 		case 'p': prefix=optarg; break;
 		case 't': t=strtoll(optarg,NULL,10); break;
 		default: fputs(USE,stderr); exit(EXIT_FAILURE); }}
@@ -71,24 +63,16 @@ int main(int argc, char ** argv){
 				{ fputs("malloc failed\n",stderr); goto err0; }
 			PQescapeStringConn(db,prefix_escaped,prefix,l,NULL);
 			#ifndef CORRELATED_SUBQUERY
-				if	(flag)
-					sql_f=SQL_DECLARE JOIN0 JOIN1 PREFIX_SQL JOIN2 JOIN3 JOIN4 PREFIX_SQL;
-					else sql_f=SQL_DECLARE JOIN1 PREFIX_SQL JOIN2 JOIN4 PREFIX_SQL;
+				sql_f=SQL_DECLARE JOIN1 PREFIX_SQL JOIN2 JOIN4 PREFIX_SQL;
 			#else
-				if	(flag)
-					sql_f=SQL_DECLARE SQ0 SQ1 PREFIX_SQL;
-					else sql_f=SQL_DECLARE SQ1 PREFIX_SQL;
+				sql_f=SQL_DECLARE SQ0 PREFIX_SQL;
 			#endif
 			}
 		else{
 			#ifndef CORRELATED_SUBQUERY
-				if	(flag)
-					sql_f=SQL_DECLARE JOIN0 JOIN1 JOIN2 JOIN3 JOIN4;
-					else sql_f=SQL_DECLARE JOIN1 JOIN2 JOIN4;
+				sql_f=SQL_DECLARE JOIN1 JOIN2 JOIN4;
 			#else
-				if	(flag)
-					sql_f=SQL_DECLARE SQ0 SQ1;
-					else sql_f=SQL_DECLARE SQ1;
+				sql_f=SQL_DECLARE SQ0;
 			#endif
 			}
 		if	(prefix)
@@ -123,15 +107,6 @@ int main(int argc, char ** argv){
 		SQLCHECK(db,result,PGRES_TUPLES_OK,err0);
 		if(!PQntuples(result)) break;
 		printf("%s%c",PQgetvalue(result,0,0),'\0');
-		if(flag){
-			printf(
-				"%s%c%s%c%s%c%s%c",
-				PQgetvalue(result,0,1),'\0',
-				PQgetvalue(result,0,2),'\0',
-				PQgetvalue(result,0,3),'\0',
-				PQgetvalue(result,0,4),'\0');
-			if	(!PQgetisnull(result,0,5))
-			 	printf("%s%c",PQgetvalue(result,0,5),'\0'); }
 		PQclear(result); }
 	PQclear(result);
 	result=PQexec(db,"close paths_cursor");

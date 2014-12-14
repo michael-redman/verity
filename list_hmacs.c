@@ -41,12 +41,7 @@ int main(int argc, char ** argv){
 					#ifndef CORRELATED_SUBQUERY
 					asprintf(&sql,"declare hmacs cursor for select content from paths join (select path, max(xtime) as max_xtime from paths where substr(path,1,%u)='%s' and xtime<=%ld group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where mode-mode%%4096=32768 and substr(paths.path,1,%u)='%s'",l,prefix_escaped,t,l,prefix_escaped)
 					#else
-					asprintf(&sql,
-//"declare hmacs cursor for select content from inodes where mode-mode%%4096=32768 and exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime and substr(path,1,%u)='%s' and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=%ld))",l,prefix_escaped,t) //if we skip the nulls in the output we can use a query that's half as slow
-"declare hmacs cursor for select "
-	"(select content from inodes where mode-mode%%4096=32768 and inodes.device=recent_paths.device and inodes.inode=recent_paths.inode and inodes.ctime=recent_paths.ctime) "
-	"from (select device,inode,ctime from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=%ld) and substr(path,1,%u)='%s') as recent_paths"
-					,t,l,prefix_escaped)
+					asprintf(&sql,"declare hmacs cursor for select content from inodes where mode-mode%%4096=32768 and exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime and substr(path,1,%u)='%s' and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=%ld))",l,prefix_escaped,t)
 					#endif
 					==-1)
 				{	fputs("asprintf failed",stderr);
@@ -58,11 +53,7 @@ int main(int argc, char ** argv){
 					#ifndef CORRELATED_SUBQUERY
 					asprintf(&sql,"declare hmacs cursor for select content from paths join (select path, max(xtime) as max_xtime from paths where xtime<=%ld group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where mode-mode%%4096=32768",t)
 					#else
-					asprintf(&sql,
-"declare hmacs cursor for select "
-	"(select content from inodes where mode-mode%%4096=32768 and inodes.device=recent_paths.device and inodes.inode=recent_paths.inode and inodes.ctime=recent_paths.ctime) "
-	"from (select device,inode,ctime from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=%ld)) as recent_paths"
-					,t)
+					asprintf(&sql,"declare hmacs cursor for select content from inodes where mode-mode%%4096=32768 and exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=%ld))",t)
 					#endif
 					==-1)
 				{	fputs("asprintf failed",stderr);
@@ -76,10 +67,6 @@ int main(int argc, char ** argv){
 		result=PQexec(db,"fetch hmacs");
 		SQLCHECK(db,result,PGRES_TUPLES_OK,err0);
 		if(!PQntuples(result)) break;
-		#ifdef CORRELATED_SUBQUERY
-			if	(PQgetisnull(result,0,0))
-				{ PQclear(result); continue; }
-			#endif
 		puts(PQgetvalue(result,0,0));
 		PQclear(result); }
 	PQclear(result);

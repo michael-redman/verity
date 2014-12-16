@@ -1,0 +1,35 @@
+--list_paths join
+explain select paths.path from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1409010652 and substr(path,1,4)='/mnt' group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime where device is not null and substr(paths.path,1,4)='/mnt/';
+
+--list_paths csq
+explain select path from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<1409010652) and substr(path,1,4)='/mnt';
+
+--list_paths csq old
+explain select path from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=1409010652);
+
+--list_hmacs join
+explain select content from paths join (select path, max(xtime) as max_xtime from paths where substr(path,1,4)='/mnt' and xtime<=1409010652 group by path) as max_xtimes on paths.path=max_xtimes.path and paths.xtime=max_xtimes.max_xtime join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where mode%4096=32768 and substr(paths.path,1,4)='/mnt';
+
+--list_hmacs csq
+explain select content from inodes where mode-mode%4096=32768 and exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime and substr(path,1,4)='/mnt' and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=1409010652));
+
+--list_hmacs csq old (returns nulls also) (ran faster under pg 7.4?)
+explain select (select content from inodes where mode-mode%4096=32768 and inodes.device=recent_paths.device and inodes.inode=recent_paths.inode and inodes.ctime=recent_paths.ctime) from (select device,inode,ctime from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=1409010652) and substr(path,1,4)='/mnt') as recent_paths;
+
+--paths_of_hmacs current
+explain select path from paths join inodes on paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime where mode-mode%4096=32768 and content='77676ea7822bbec6549b0b4a1ac66b7ea863c7b5' and xtime<=1409010652 and substr(path,1,4)='/mnt' and not exists (select path from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime) order by xtime desc limit 1;
+
+--paths_of_hmacs with stale
+explain select path from paths join inodes on paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime where mode-mode%4096=32768 and content='77676ea7822bbec6549b0b4a1ac66b7ea863c7b5' and xtime<=1409010652 and substr(path,1,4)='/mnt' order by xtime desc limit 1;
+
+--restore list_paths join
+explain select paths.path,mode,uid,gid,mtime,content from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1409010652 and substr(path,1,4)='/mnt' group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where paths.device is not null and substr(paths.path,1,4)='/mnt';
+
+--restore list_paths csq
+explain select paths.path ,(select mode from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mode, (select uid from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as uid, (select gid from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as gid, (select mtime from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mtime, (select content from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.device=paths.device) as content from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=1409010652 ) and substr(path,1,4)='/mnt';
+
+--inodes_of_hmac
+explain select device,inode,ctime from inodes where mode-mode%4096=32768 and content='989ffa8f7475b7e013e551489d0705f7a4caa273' and exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and xtime<=1409010652));
+
+--paths_of_inode
+explain select path from paths where device=65024 and inode=1422625 and ctime=1405521141 and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=1409010652) and substr(path,1,4)='/mnt';

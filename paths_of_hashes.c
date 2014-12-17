@@ -52,8 +52,7 @@ int main(int argc, char ** argv){
 		{ l=htonl(strlen(params[3])); params[2]=(char *)&l; }
 	while(!feof(stdin)){
 		if (!(params[0]=fgets(hmac,2*SHA256_DIGEST_LENGTH+2,stdin))) break;
-		c=strlen(hmac)-1;
-		if (hmac[c]=='\n') hmac[c]='\0';
+		hmac[2*SHA256_DIGEST_LENGTH]='\0';
 		if	(params[3])
 			{	if	(flag)
 					sql=SQL0 PREFIX_SQL SQL1;

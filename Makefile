@@ -32,7 +32,6 @@ install:
 	$(foreach prog, $(SCRIPTS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(DOCS), install -D -m 0644 $(prog) $(prefix)/share/doc/verity/$(prog); )
 	install -D -m 0644 schema.psql $(prefix)/share/verity/schema.psql
-	install -D -m 0644 get_passphrase $(prefix)/share/verity/get_passphrase
 
 uninstall:
 	rm $(exec_prefix)/bin/verity_index_paths

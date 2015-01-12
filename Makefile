@@ -3,22 +3,23 @@ exec_prefix?=$(prefix)
 
 QUERY_TYPE?=JOIN
 
+PROGS=update list
 LIBEXECS=list_hashes paths_of_hashes
 SCRIPTS=content_diff expire_and_clean
 DOCS=COPYRIGHT LICENSE README
 
-CFLAGS=-Wall -g -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
+CFLAGS=-Wall -g -fstack-protector-strong -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
 LDFLAGS=-L /usr/lib/postgresql -lpq -L $(exec_prefix)/lib -L . -L $(exec_prefix)/lib/verity
 
-all: $(LIBS) $(LIBEXECS) index_paths list_paths
+all: $(LIBS) $(LIBEXECS) $(PROGS)
 
 clean:
-	rm -f $(LIBS) $(LIBEXECS) index_paths list_paths
+	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 
 lib%.so: %.c
 	cc -c -fpic -shared -Wall -g -o $@ $<
 
-index_paths: index_paths.c sha256_of_file.c
+update: update.c sha256_of_file.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
 
 paths_of_hashes: paths_of_hashes.c

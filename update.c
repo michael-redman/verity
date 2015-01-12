@@ -1,4 +1,4 @@
-#define USE "index_paths [-a] 'db conn string' < path_list"
+#define USE "verity_update [-a] 'db conn string' < path_list"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

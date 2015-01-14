@@ -8,11 +8,12 @@ LIBEXECS=list_hashes paths_of_hashes
 SCRIPTS=content_diff expire_and_clean
 DOCS=COPYRIGHT LICENSE README
 
-CFLAGS=-Wall -g -fstack-protector-strong -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
+CFLAGS=-Wall -g -fstack-protector -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
 LDFLAGS=-L /usr/lib/postgresql -lpq -L $(exec_prefix)/lib -L . -L $(exec_prefix)/lib/verity
 
 all: $(LIBS) $(LIBEXECS) $(PROGS)
 
+.PHONY: clean
 clean:
 	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 

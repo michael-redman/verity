@@ -22,7 +22,6 @@
 #include <hexbytes.h>
 
 #include "err.h"
-#include "etch_x86_hack.h"
 
 extern char sha256_of_file (char const * const, unsigned char[SHA256_DIGEST_LENGTH]);
 

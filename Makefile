@@ -4,7 +4,6 @@ exec_prefix?=$(prefix)
 QUERY_TYPE?=JOIN
 
 PROGS=update list
-LIBEXECS=paths_of_hashes
 SCRIPTS=diff clean
 DOCS=COPYRIGHT LICENSE README
 
@@ -23,11 +22,7 @@ lib%.so: %.c
 update: update.c sha256_of_file.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
 
-paths_of_hashes: paths_of_hashes.c
-	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -o $@  $<
-
 install:
-	$(foreach prog, $(LIBEXECS), install -D -m 0755 $(prog) $(exec_prefix)/lib/verity/$(prog); )
 	$(foreach prog, $(PROGS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(SCRIPTS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(DOCS), install -D -m 0644 $(prog) $(prefix)/share/doc/verity/$(prog); )
@@ -35,7 +30,6 @@ install:
 
 uninstall:
 	$(foreach prog, $(PROGS) $(SCRIPTS), rm $(exec_prefix)/bin/verity_$(prog); )
-	rm -rf $(exec_prefix)/lib/verity
 	rm -rf $(prefix)/share/doc/verity
 	rm -rf $(prefix)/share/verity
 	

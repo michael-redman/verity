@@ -4,8 +4,8 @@ exec_prefix?=$(prefix)
 QUERY_TYPE?=JOIN
 
 PROGS=update list
-LIBEXECS=list_hashes paths_of_hashes
-SCRIPTS=content_diff expire_and_clean
+LIBEXECS=paths_of_hashes
+SCRIPTS=diff clean
 DOCS=COPYRIGHT LICENSE README
 
 CFLAGS=-Wall -g -fstack-protector -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
@@ -27,18 +27,14 @@ paths_of_hashes: paths_of_hashes.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -o $@  $<
 
 install:
-	$(foreach prog, $(LIBS), install -D -m 0644 $(prog) $(exec_prefix)/lib/verity/$(prog); )
 	$(foreach prog, $(LIBEXECS), install -D -m 0755 $(prog) $(exec_prefix)/lib/verity/$(prog); )
-	install -D -m 0755 index_paths $(exec_prefix)/bin/verity_index_paths
-	install -D -m 0755 list_paths $(exec_prefix)/bin/verity_list_paths
+	$(foreach prog, $(PROGS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(SCRIPTS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(DOCS), install -D -m 0644 $(prog) $(prefix)/share/doc/verity/$(prog); )
 	install -D -m 0644 schema.psql $(prefix)/share/verity/schema.psql
 
 uninstall:
-	rm $(exec_prefix)/bin/verity_index_paths
-	rm $(exec_prefix)/bin/verity_list_paths
-	$(foreach prog, $(SCRIPTS), rm $(exec_prefix)/bin/verity_$(prog); )
+	$(foreach prog, $(PROGS) $(SCRIPTS), rm $(exec_prefix)/bin/verity_$(prog); )
 	rm -rf $(exec_prefix)/lib/verity
 	rm -rf $(prefix)/share/doc/verity
 	rm -rf $(prefix)/share/verity

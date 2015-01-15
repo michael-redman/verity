@@ -16,17 +16,18 @@ parse_list () {
 
 parse_list "$left" /tmp/$$/left.hashes
 parse_list "$right" /tmp/$$/right.hashes
+diff /tmp/$$/left.hashes /tmp/$$/right.hashes > /tmp/$$/diff
 
-for line in `diff /tmp/$$/left.hashes /tmp/$$/right.hashes`; do
-	hash=`echo $line | cut -c 3-`
-	sign=${line:0:1}
-	if [ "$sign" != '<' -a "$sign" != '>' ]; then continue; fi
-	echo -n "$sign"
-	if	[ "$sign" = '<' ]
-		then grep -z "^$hash" "$left"
-		else grep -z "^$hash" "$right"; fi
-	done
+print_side ()
+{
+	while IFS= read -r -d '' line; do
+		echo -n "$1$line"
+		echo -ne \\0
+		done < <( grep "^$1" /tmp/$$/diff | cut -c 3- | /usr/local/lib/verity/paths "$2"); }
 
-#rm -rf /tmp/$$
+print_side '<' "$left"
+print_side '>' "$right"
+
+rm -rf /tmp/$$
 
 #IN GOD WE TRVST.

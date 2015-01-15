@@ -3,11 +3,11 @@ exec_prefix?=$(prefix)
 
 QUERY_TYPE?=JOIN
 
-PROGS=update list
+PROGS=paths hashes update
 SCRIPTS=diff clean
 DOCS=COPYRIGHT LICENSE README
 
-CFLAGS=-Wall -g -fstack-protector -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
+CFLAGS=-Wall -g -fstack-protector -O2 -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
 LDFLAGS=-L /usr/lib/postgresql -lpq -L $(exec_prefix)/lib -L . -L $(exec_prefix)/lib/verity
 
 all: $(LIBS) $(LIBEXECS) $(PROGS)
@@ -16,8 +16,8 @@ all: $(LIBS) $(LIBEXECS) $(PROGS)
 clean:
 	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 
-lib%.so: %.c
-	cc -c -fpic -shared -Wall -g -o $@ $<
+hashes: hashes.c
+	cc $(CFLAGS) $(LDFLAGS) -lfgetsnull -o $@ $<
 
 update: update.c sha256_of_file.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
@@ -33,5 +33,4 @@ uninstall:
 	rm -rf $(prefix)/share/doc/verity
 	rm -rf $(prefix)/share/verity
 	
-#Copyright 2014 Michael Redman
 #IN GOD WE TRVST.

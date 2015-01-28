@@ -25,7 +25,7 @@
 
 #else
 
-#define SQ0	"(select mode from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mode, "\
+#define SQ0	", (select mode from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mode, "\
 		"(select content from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as content "
 #define SQ1	"from paths where "\
 		"device is not null "\

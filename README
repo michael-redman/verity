@@ -10,65 +10,34 @@ ABOUT
 
 Verity maintains a database of hashes of files you feed it and shows you what content was present when.
 
-LIMITATIONS
-
-Verity uses kernel device numbers to determine which files are hardlinked.  If device numbers change (e.g. different device numbers for USB disks because you plugged them in, in a different order), content will be re-hashed even though it has not changed.  If you are unsure how your system behaves, check your device numbers before running verity_index_paths (the "stat" command will give you the number of the device a file is on).  As a last resort you can update the database manually before running index_paths.
-
-Verity depends on the correctness of inode ctimes - and therefore the system clock - to know when it needs to re-index an inode.
-
-Verity ignores sockets, fifos, and device special files.
-
 INSTALLING
 
 Verity was developed on Debian Linux and has not yet been compiled or tested on other systems.
 
 To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libfgetsnull" and "libhexbytes" libraries from github.com/michael-redman.
 
+Example command for installing packaged dependencies on Debian:
+
+root@yourhost:~# aptitude install make gcc libpq-dev postgresql
+
+Example commands for cloning the other 2 dependencies from github:
+
+you@yourhost:~$ git clone git://github.com/michael-redman/libfgetsnull
+you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes
+
 The two dependencies you have to build, and Verity, all build and install with the standard "make" and "make install" commands.
 
 If the database queries in Verity cause your system to run out of memory and swap excessively, you probably need to tune Postgres to use less memory - see especially the documentation for "work_mem".  On low memory machines with many files in the data set the large join queries may still run forever, in that case try an alternate set of queries by recompiling Verity with the make option "QUERY_TYPE=CORRELATED_SUBQUERY".
 
-Example commands for installing packaged prereqs & setting up database on Debian:
+Example commands for setting up database on Debian:
 
-yourhost:~# aptitude install git-core make gcc libpq-dev postgresql 
 yourhost:~# su -l postgres
 postgres@yourhost:~$ createuser you
-postgres@yourhost:~$ createdb -O you verity_example_db
+postgres@yourhost:~$ createdb -O you my_verity_db
 postgres@yourhost:~$ exit
 
-you@yourhost:~$ psql verity < /usr/local/share/verity/schema.psql
+you@yourhost:~$ psql my_verity_db < /usr/local/share/verity/schema.psql
 
-Example commands for cloning the other 2 dependencies from github:
-
-you@yourhost:~$ git clone git://github.com/michael-redman/libfgetsnull-git1
-you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes-git1
-
-USE EXAMPLE
-
-you@yourhost:~$ { find ~ -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths -p ~ dbname=verity_example_db <(echo -n "my passphrase")
-
-This will index everything in your home dir, plus all paths in your home dir already existing in the db (to check if the files there were deleted), with the "sort -uz" (sort and list only unique lines) on the concatenated lists of paths, ensuring each path is only indexed once.
-
-Note the list of paths is delimited by nulls not newlines.  You have to use "find -print0" like in the example not just "find".
-
-Inodes with unchanged ctimes are not re-hashed by default.  You can force re-hash with "verity_index_paths -a"
-
-See the libpq documentation for database connection string syntax.  You can also use a .pgpass file to store some settings.
-
-OTHER COMMANDS
-
-verity_list_paths lists paths already in the database.  Use as in the example above.
-
-verity_content_diff tells you what hashes are new/missing between two trees you specify at two times you specify.  Example:
-
-you@yourhost:~$ verity_content_diff dbname=verity_example_db /mnt/verity/ `date -d '20130101 0000' +%s` /mnt/verity-backup/ `date -d '20140101 0000' +%s`
-
-For each hash in the diff, verity_content_diff will also print the path with the specified prefix where that hash was most recently indexed, up to the later of the specified times.  The printed path may have since been indexed as dead or containing different content.  Only one path will be printed for each hash even if the data set contained more than one mathcing path.
-
-The output of verity_content_diff is null delimited.  Use "tr \\0 \\n" to make it human-readable.
-
-verity_expire_and_clean deletes the indexing history before a date you specify:
-
-you@yourhost:~$ verity_expire_and_clean verity_example_db `date -d '20140101 0000' +%s`
+After installing please read the further instructions, use examples, and notes on design limitations in the verity(7) manual page.
 
 IN GOD WE TRVST.

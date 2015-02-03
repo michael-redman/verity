@@ -2,9 +2,8 @@
 
 #clean dbname xtime
 
-psql -tc "delete from files where exists (select * from files as alias where alias.path=files.path and alias.xtime<$2 and alias.xtime>files.xtime);" "$1"
-psql -tc "delete from files where not exists (select * from files as alias where alias.path=files.path and device is not null);" "$1"
-psql -tc "delete from files where device is null and xtime=(select min(xtime) from files as alias where alias.path=files.path);" "$1"
-psql -tc "delete from inodes where not exists (select * from files where files.device=inodes.device and files.inode=inodes.inode and files.ctime=inodes.ctime)" "$1"
+psql -tc "delete from paths where exists (select * from paths as alias where alias.path=paths.path and alias.xtime<$2 and alias.xtime>paths.xtime);" "$1"
+psql -tc "delete from paths where not exists (select * from paths as alias where alias.path=paths.path and device is not null);" "$1"
+psql -tc "delete from inodes where not exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime)" "$1"
 
 #IN GOD WE TRVST.

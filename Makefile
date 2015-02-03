@@ -31,11 +31,19 @@ install:
 	$(foreach prog, $(DOCS), install -D -m 0644 $(prog) $(prefix)/share/doc/verity/$(prog); )
 	install -D -m 0755 paths $(exec_prefix)/lib/verity/paths
 	install -D -m 0644 schema.psql $(prefix)/share/verity/schema.psql
+	install -D -m 0644 verity.7 $(prefix)/share/man/man7/verity.7
+	install -D -m 0644 verity_list.1 $(prefix)/share/man/man1/verity_list.1
+	install -D -m 0644 verity_update.1 $(prefix)/share/man/man1/verity_update.1
+	install -D -m 0644 verity_hashes.1 $(prefix)/share/man/man1/verity_hashes.1
+	install -D -m 0644 verity_diff.1 $(prefix)/share/man/man1/verity_diff.1
+	install -D -m 0644 verity_clean.1 $(prefix)/share/man/man1/verity_clean.1
 
 uninstall:
 	$(foreach prog, $(PROGS) $(SCRIPTS), rm $(exec_prefix)/bin/verity_$(prog); )
 	rm -rf $(prefix)/share/doc/verity
 	rm -rf $(prefix)/share/verity
 	rm -rf $(exec_prefix)/lib/verity
+	cd /usr/local/share/man/man1 && rm verity_list.1 verity_update.1 verity_hashes.1 verity_diff.1 verity_clean.1
+	rm /usr/local/man/man7/verity.7
 	
 #IN GOD WE TRVST.

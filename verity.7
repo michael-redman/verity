@@ -1,0 +1,48 @@
+.TH VERITY 7
+.SH NAME
+verity \- content tracking system
+.SH DESCRIPTION
+.B verity
+is a content tracking system comprised of the commands
+.B verity_list, verity_update, verity_hashes, verity_diff,
+and
+.B verity_clean.
+
+Verity stores hashes of your files in a database and shows you what hashes are different between two data sets you specify.
+.SH EXAMPLE COMMANDS
+Initialize a new database with the Verity schema:
+
+psql my_verity_db < /usr/local/share/verity/schema.psql
+
+Update a uniq'ed list of all paths currently either on the fs (to make sure new files get hashed) or in the db (to mkae sure deleted paths get marketd as deleted):
+
+{ find /some/tree/ -print0; verity_list dbname=your_verity_db | grep -z ^/some/tree/; } | sort -uz | verity_update dbname=your_verity_db
+
+
+"Diff" /some/tree against what it was on 2014 March 7:
+
+verity_diff <(verity_list -c -t `date -d 2014-03-07 +%s` dbname=your_verity_db | grep -zE '^.{64}/some/tree/') <(verity_list -c dbname=your_verity_db | grep -zE '^.{64}/some/tree/')
+
+For each hash existing in only one set, verity_diff will print a '<' or '>' indicating which set the hash existed in (like regular "diff"), then the hash, then a path in that set where it existed.  Output records are null-delimited.
+
+verity_hashes takes a database connection string as its only argument, reads from stdin a null-delimited list of paths (like from "find -print0" or from "verity_list"), and prints on stdout a null-delimited list of concatenated hash-path pairs (like from "verity_list -c") so you can use verity_diff with arbitrary finds.
+
+Delete entries from the database older than 2014 March 7:
+
+verity_clean your_verity_db `date -d 2014-03-07 +%s`
+
+For now, unlike the other verity_* commands, verity_clean does not follow the standard libpq connection string syntax, and just takes a database name.  It therefore has to be run on the database server.
+
+.SH LIMITATIONS
+
+Verity uses kernel device numbers to determine which files are hardlinked.  If device numbers change (e.g. different device numbers for USB disks because you plugged them in, in a different order), content will be re-hashed even though it has not changed.  If you are unsure how your system behaves, check your device numbers before running verity_index_paths (the "stat" command will give you the number of the device a file is on).  As a last resort you can update the database manually before running verity_update.
+
+Verity depends on the correctness of inode ctimes - and therefore the system clock - to know when it needs to re-index an inode.
+
+Verity ignores sockets, fifos, and device special files.
+
+.SH AUTHOR
+
+Michael Redman <michael.redman.4@gmail.com>
+
+.SH IN GOD WE TRVST.

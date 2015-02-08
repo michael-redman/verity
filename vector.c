@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct vector
-{	void ** base;
-	size_t *sizes, n_alloc, n_data; };
+#include "vector.h"
 
 void vector_init (struct vector *v)
 {	v->base=NULL;

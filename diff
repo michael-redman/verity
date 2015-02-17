@@ -14,8 +14,10 @@ parse_list () {
 		echo ${line:0:64} >> "$2"
 		done < "$1"; }
 
-parse_list "$left" /tmp/$$/left.hashes
-parse_list "$right" /tmp/$$/right.hashes
+parse_list "$left" /tmp/$$/left.hashes.u
+uniq /tmp/$$/left.hashes.u > /tmp/$$/left.hashes
+parse_list "$right" /tmp/$$/right.hashes.u
+uniq /tmp/$$/right.hashes.u > /tmp/$$/right.hashes
 diff /tmp/$$/left.hashes /tmp/$$/right.hashes > /tmp/$$/diff
 
 print_side ()

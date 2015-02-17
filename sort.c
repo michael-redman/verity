@@ -1,4 +1,4 @@
-#define USE "verity_diff ... | verity_resort\n"
+#define USE "verity_diff ... | verity_sort\n"
 
 #include <limits.h>
 #include <openssl/sha.h>

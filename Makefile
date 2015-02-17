@@ -3,7 +3,7 @@ exec_prefix?=$(prefix)
 
 QUERY_TYPE?=JOIN
 
-PROGS=list hashes update re-sort
+PROGS=list hashes update sort
 SCRIPTS=diff clean
 DOCS=COPYRIGHT LICENSE README
 
@@ -25,7 +25,7 @@ update: update.c sha256_of_file.c
 paths: paths.c
 	cc -Wall -g -fstack-protector -O2 -o $@ $<
 
-re-sort: re-sort.c vector.c
+sort: sort.c vector.c
 	cc -Wall -g -fstack-protector -o $@ $^ -lfgetsnull
 
 install:

@@ -16,12 +16,12 @@ psql my_verity_db < /usr/local/share/verity/schema.psql
 
 Update a uniq'ed list of all paths currently either on the fs (to make sure new files get hashed) or in the db (to mkae sure deleted paths get marketd as deleted):
 
-{ find /some/tree/ -print0; verity_list dbname=your_verity_db | grep -z ^/some/tree/; } | sort -uz | verity_update dbname=your_verity_db
+{ find /some/tree/ -print0; verity_list -f '^/some/tree/' dbname=your_verity_db; } | sort -uz | verity_update dbname=your_verity_db
 
 
 "Diff" /some/tree against what it was on 2014 March 7:
 
-verity_diff <(verity_list -c -t `date -d 2014-03-07 +%s` dbname=your_verity_db | grep -zE '^.{64}/some/tree/') <(verity_list -c dbname=your_verity_db | grep -zE '^.{64}/some/tree/')
+verity_diff <(verity_list -c -t `date -d 2014-03-07 +%s` -r '^/some/tree/' dbname=your_verity_db) <(verity_list -c -r '^/some/tree' dbname=your_verity_db)
 
 For each hash existing in only one set, verity_diff will print a '<' or '>' indicating which set the hash existed in (like regular "diff"), then the hash, then a path in that set where it existed.  Output records are null-delimited.
 

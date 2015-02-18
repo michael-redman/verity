@@ -27,7 +27,7 @@ For each hash existing in only one set, verity_diff will print a '<' or '>' indi
 
 verity_hashes takes a database connection string as its only argument, reads from stdin a null-delimited list of paths (like from "find -print0" or from "verity_list"), and prints on stdout a null-delimited list of concatenated hash-path pairs (like from "verity_list -c") so you can use verity_diff with arbitrary finds.
 
-verity_re-sort re-sorts the output of verity_diff by the paths in the diff.
+verity_sort sorts the output of verity_diff by the paths in the diff.
 
 Delete entries from the database older than 2014 March 7:
 

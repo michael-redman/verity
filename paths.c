@@ -1,74 +1,77 @@
-#define USE "paths infile < hashlist\n"
+#define USE "paths [-p /path/prefix] [-t as-of-time_t] [-s] 'db connection string' < hash_list"
 
+#include <arpa/inet.h>
+#include <endian.h>
+#include <libpq-fe.h>
 #include <linux/limits.h>
-#include <math.h>
 #include <openssl/sha.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
-#include <fgetsnull.h>
+#include "err.h"
 
-#include "at.h"
-
-#define HASH_LEN (2*SHA256_DIGEST_LENGTH)
-
-struct lookup_s{
-	char hash[HASH_LEN];
-	unsigned long long offset; };
-
-int compar (void const *a, void const *b)
-{	return memcmp(
-		((struct lookup_s *)a)->hash,
-		((struct lookup_s *)b)->hash,
-		HASH_LEN); }
+#define	SQL0	"select "\
+			"path "\
+			"from "\
+				"paths "\
+				"join inodes on paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime "\
+			"where "\
+				"mode-mode%4096=32768 "\
+				"and content=$1 "\
+				"and xtime<=$2 "
+#define PREFIX_SQL		"and substr(path,1,$3)=$4 "
+#define EXCLUDE_STALE_PATHS_SQL	"and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime) "
+#define SQL1		"order by xtime desc limit 1"
 
 int main(int argc, char ** argv){
-	struct lookup_s * base=NULL, *p;
-	unsigned int n_data=0, n_alloc=0, alloc_try;
-	unsigned long long offset=0;
-	int c;
-	FILE * stream;
-	char hash[HASH_LEN+2];
-	if	(!(stream=fopen(argv[1],"rb")))
-		{ perror(argv[1]); return 1; }
-	while	(!feof(stream))
-		{	if	(n_data==n_alloc)
-				{	alloc_try=1+3*n_alloc;
-					p=realloc(base,alloc_try*sizeof(struct lookup_s));
-					if (!p) { perror("realloc failed " AT); goto l_0_0; }
-					base=p;
-					n_alloc=alloc_try; }
-			if (fread(&base[n_data],HASH_LEN,1,stream)!=1) break;
-			base[n_data++].offset=offset;
-			offset+=HASH_LEN;
-			do	{	c=fgetc(stream);
-					if (c==EOF) { fprintf(stderr,"path not read for hash %s " AT, hash); goto l_0_0; }
-					offset++;
-					if (!c) break; }
-				while(!feof(stream)); }
-	if (ferror(stream)) { perror(argv[1]); AT_ERR; goto l_0_0; }
-	while	(!feof(stdin))
-		{	if	(!fgets(hash,HASH_LEN+2,stdin))
-				break; 
-			hash[HASH_LEN]='\0';
-			if	(!(p=bsearch(hash,base,n_data,sizeof(struct lookup_s),compar)))
-				{	fprintf(stderr,"path not found for %s\n",hash);
-					continue; }
-			if	(fseek(stream,p->offset+HASH_LEN,SEEK_SET))
-				{ perror(argv[1]); AT_ERR; goto l_0_0; }
-			fputs(hash,stdout);
-			do	{	c=fgetc(stream);
-					if (c==EOF) { fprintf(stderr,"short read of path for hash %s " AT, hash); goto l_0_0; }
-					fputc(c,stdout);
-					if (!c) break; }
-				while(!feof(stdin)); }
-	if (base) free(base);
-	if (fclose(stream)) { perror(argv[1]); return 1; }
+	char hash[2*SHA256_DIGEST_LENGTH+2], flag=0, *sql, *params[4];
+	PGconn *db;
+	PGresult *result;
+	uint32_t l;
+	uint64_t t=htobe64(time(NULL));
+	int	c,
+		lengths[4]={0,sizeof(uint64_t),sizeof(uint32_t),0},
+		types[4]={0,1,1,0};
+	params[3]=NULL; //prefix string - tested later
+	while ((c=getopt(argc,argv,"sp:t:"))!=-1){ switch(c){
+		case 's': flag=1; break;
+		case 'p': params[3]=optarg; break;
+		case 't': t=htobe64(strtoll(optarg,NULL,10)); break;
+		default: fputs(USE,stderr); exit(EXIT_FAILURE); }}
+	if (!(argc-optind)) { fputs(USE,stderr); exit(EXIT_FAILURE); }
+	params[1]=(char *)&t;
+	db=PQconnectdb(argv[optind]);
+	if(PQstatus(db)!=CONNECTION_OK){
+		fputs(PQerrorMessage(db),stderr);
+		exit(EXIT_FAILURE); }
+	if	(params[3])
+		{ l=htonl(strlen(params[3])); params[2]=(char *)&l; }
+	while(!feof(stdin)){
+		if (!(params[0]=fgets(hash,2*SHA256_DIGEST_LENGTH+2,stdin))) break;
+		hash[2*SHA256_DIGEST_LENGTH]='\0';
+		if	(params[3])
+			{	if	(flag)
+					sql=SQL0 PREFIX_SQL SQL1;
+					else sql=SQL0 PREFIX_SQL EXCLUDE_STALE_PATHS_SQL SQL1;
+				result=PQexecParams(db,sql,4,NULL,(char const * const *)params,lengths,types,0); }
+			else{	if(flag)
+					sql=SQL0 SQL1;
+					else sql=SQL0 EXCLUDE_STALE_PATHS_SQL SQL1;
+				result=PQexecParams(db,sql,2,NULL,(char const * const *)params,lengths,types,0); }
+		SQLCHECK(db,result,PGRES_TUPLES_OK,err0);
+		if
+			(!PQntuples(result)||PQgetisnull(result,0,0))
+			fprintf(stderr,"path not found for %s\n",hash);
+			else printf("%s%s%c",hash,PQgetvalue(result,0,0),'\0');
+		PQclear(result); }
+	PQfinish(db);
 	return 0;
-	l_0_0:	if (base) free(base);
-		if (fclose(stream)) perror(argv[1]);
+	err0:	PQclear(result);
+		PQfinish(db);
 		exit(EXIT_FAILURE); }
 
-//IN GOD WE TRVST.
+/*IN GOD WE TRVST.*/

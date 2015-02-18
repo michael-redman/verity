@@ -3,6 +3,7 @@ exec_prefix?=$(prefix)
 
 QUERY_TYPE?=JOIN
 
+LIBEXECS=paths
 PROGS=list hashes update sort
 SCRIPTS=diff clean
 DOCS=COPYRIGHT LICENSE README
@@ -10,11 +11,11 @@ DOCS=COPYRIGHT LICENSE README
 CFLAGS=-Wall -g -fstack-protector -O2 -I /usr/include/postgresql -I $(prefix)/include -D$(QUERY_TYPE) 
 LDFLAGS=-L /usr/lib/postgresql -lpq -L $(exec_prefix)/lib -L . -L $(exec_prefix)/lib/verity
 
-all: $(LIBS) $(LIBEXECS) $(PROGS) paths
+all: $(LIBS) $(LIBEXECS) $(PROGS)
 
 .PHONY: clean
 clean:
-	rm -f $(LIBS) $(LIBEXECS) $(PROGS) paths
+	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 
 hashes: hashes.c
 	cc $(CFLAGS) $(LDFLAGS) -lfgetsnull -o $@ $<
@@ -22,17 +23,14 @@ hashes: hashes.c
 update: update.c sha256_of_file.c
 	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
 
-paths: paths.c
-	cc -Wall -g -fstack-protector -O2 -o $@ $<
-
 sort: sort.c vector.c
 	cc -Wall -g -fstack-protector -o $@ $^ -lfgetsnull
 
 install:
+	$(foreach prog, $(LIBEXECS), install -D -m 0755 $(prog) $(exec_prefix)/lib/verity/$(prog); )
 	$(foreach prog, $(PROGS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(SCRIPTS), install -D -m 0755 $(prog) $(exec_prefix)/bin/verity_$(prog); )
 	$(foreach prog, $(DOCS), install -D -m 0644 $(prog) $(prefix)/share/doc/verity/$(prog); )
-	install -D -m 0755 paths $(exec_prefix)/lib/verity/paths
 	install -D -m 0644 schema.psql $(prefix)/share/verity/schema.psql
 	install -D -m 0644 verity.7 $(prefix)/share/man/man7/verity.7
 	install -D -m 0644 verity_list.1 $(prefix)/share/man/man1/verity_list.1

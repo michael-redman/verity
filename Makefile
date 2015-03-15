@@ -17,14 +17,11 @@ all: $(LIBS) $(LIBEXECS) $(PROGS)
 clean:
 	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 
-hashes: hashes.c
-	cc $(CFLAGS) $(LDFLAGS) -lfgetsnull -o $@ $<
-
 update: update.c sha256_of_file.c
-	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lfgetsnull -lhexbytes -lcrypto -o $@  $^
+	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lhexbytes -lcrypto -o $@  $^
 
 sort: sort.c vector.c
-	cc -Wall -g -fstack-protector -o $@ $^ -lfgetsnull
+	cc -Wall -g -fstack-protector -o $@ $^
 
 install:
 	$(foreach prog, $(LIBEXECS), install -D -m 0755 $(prog) $(exec_prefix)/lib/verity/$(prog); )

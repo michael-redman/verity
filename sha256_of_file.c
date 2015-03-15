@@ -12,12 +12,18 @@ char sha256_of_file
 	SHA256_CTX hash_context;
 	FILE *stream=fopen(path,"rb");
 	if (!stream) { perror(path); AT; return -1; }
-	SHA256_Init(&hash_context);
-	while	((bytes_read=fread(buf,1,BUF_SIZE,stream)))
-		SHA256_Update(&hash_context,buf,bytes_read);
+	if (SHA256_Init(&hash_context)!=1) { AT; goto label0; }
+	while	(!feof(stream))
+		{	bytes_read=fread(buf,1,BUF_SIZE,stream);
+			if (ferror(stream)) { perror(path); AT; goto label0; }
+			if (!bytes_read) break;
+			if	(SHA256_Update(&hash_context,buf,bytes_read)!=1)
+				{ AT; goto label0; } }
+	if (fclose(stream)) { perror(path); AT; return 1; }
 	SHA256_Final(hash,&hash_context);
-	if (ferror(stream) || fclose(stream)) { perror(path); AT; return -1; }
-	return 0; }
+	return 0;
+	label0:	if (fclose(stream)) perror(path);
+		return 1; }
 
 /* int main (int argc, char ** argv){
 	unsigned char hash[SHA256_DIGEST_LENGTH];

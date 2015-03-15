@@ -1,6 +1,8 @@
 #!/bin/bash
 
-USE="verity_diff 'db conn string' <(list -c ... | grep ...) <(list -c ... | grep ...)"
+USE="verity_diff 'db conn string' <(verity_list -c ... | grep ...) <(verity_list -c ... | grep ...)"
+
+if [ "$#" -ne 3 ]; then echo "$USE"; exit 1; fi
 
 mkdir /tmp/$$
 IFS='

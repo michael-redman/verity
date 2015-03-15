@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <fgetsnull.h>
-
 #include "at.h"
 #include "vector.h"
 
@@ -20,11 +18,11 @@ int compar (const void *a, const void *b) { return strcmp(
 int main
 (	int argc, char ** argv)
 {	struct vector data;
-	char buf[REC_LEN];
-	size_t i;
+	char *buf=NULL;
+	size_t i,buf_size=0;
 	vector_init(&data);
 	while	(!feof(stdin))
-		{	if (!fgetsnull(buf,REC_LEN,stdin)) break;
+		{	if (getdelim(&buf,&buf_size,'\0',stdin)==-1) break;
 			if	(vector_add(&data,buf,strlen(buf)+1))
 				{	fputs("vector_add failed",stdout);
 					AT_ERR;
@@ -35,9 +33,11 @@ int main
 		if	(	fputs((char *)(data.base[i]),stdout)==EOF
 				|| fputc('\0',stdout)==EOF)
 			{ perror("stdout"); AT_ERR; goto l0; }
+	free(buf);
 	vector_free(&data);
 	return 0;
-	l0:	vector_free(&data);
+	l0:	free(buf);
+		vector_free(&data);
 		return 1; }
 
 //IN GOD WE TRVST.

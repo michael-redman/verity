@@ -14,15 +14,14 @@ INSTALLING
 
 Verity was developed on Debian Linux and has not yet been compiled or tested on other systems.
 
-To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libfgetsnull" and "libhexbytes" libraries from github.com/michael-redman.
+To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libhexbytes" library from github.com/michael-redman.
 
 Example command for installing packaged dependencies on Debian:
 
 root@yourhost:~# aptitude install make gcc libpq-dev postgresql
 
-Example commands for cloning the other 2 dependencies from github:
+Example command for cloning the other dependency from github:
 
-you@yourhost:~$ git clone git://github.com/michael-redman/libfgetsnull
 you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes
 
 The two dependencies you have to build, and Verity, all build and install with the standard "make" and "make install" commands.

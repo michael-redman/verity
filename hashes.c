@@ -9,12 +9,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <fgetsnull.h>
-
 #include "err.h"
 
 int main(int argc, char ** argv){
-	char path[PATH_MAX+1];
+	char *path=NULL;
+	size_t path_len=0;
 	PGconn *db;
 	PGresult *result;
 	uint64_t t=htobe64(time(NULL));
@@ -27,9 +26,8 @@ int main(int argc, char ** argv){
 	if	(PQstatus(db)!=CONNECTION_OK)
 		{	fputs(PQerrorMessage(db),stderr);
 			exit(EXIT_FAILURE); }
-
 	while(!feof(stdin)){
-		if (!fgetsnull(path,PATH_MAX+1,stdin)) break;
+		if (getdelim(&path,&path_len,'\0',stdin)==-1) break;
 		result=PQexecParams(db,
 			"select content from inodes "\
 				"join paths on paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime "\
@@ -45,12 +43,13 @@ int main(int argc, char ** argv){
 		if(PQntuples(result)!=1) {fputs("sanity check failed - multiple hashes for path",stderr); goto err1; }
 		printf("%s%s%c",PQgetvalue(result,0,0),path,'\0');
 		PQclear(result); }
-
-	if (ferror(stdin)) { perror("stdin"); goto l0; }
+	if (ferror(stdin)) { perror("stdin"); AT; goto l0; }
+	free(path);
 	PQfinish(db);
 	return 0;
 	err1:	PQclear(result);
-	l0:	PQfinish(db);
+	l0:	free(path);
+		PQfinish(db);
 		exit(EXIT_FAILURE); }
 
 /*IN GOD WE TRVST.*/

@@ -1,0 +1,30 @@
+--list_paths join
+explain select paths.path from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1424122058 group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime where device is not null;
+
+--the huge (e.g. 2m vs. 14s) performance difference between the following two regex-filtered join queries shows up better using the "time" shell command on query runs without explain, than it does with the query planner "explain".  Guessing this might be because (1) the query planner has to scan the whole table for paths matching the regular expression no matter what (= same # of disk reads for either design of the query); but (2) the location of the regex filter affects the size of the join (instead of doing a join that is the size of the number of all distinct paths, we can do a join that is the size of the number of distinct matching paths)
+
+--with regex in wrong spot (join is size of distinct # of all paths)
+explain select paths.path from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1424122058 group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime where device is not null and substring(paths.path from '^/mnt/blacktar/plain/') is not null;
+
+--with regex in right spot (join is size of distinct paths in regex selection)
+explain select paths.path from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1424122058 and substring(path from '^/mnt/blacktar/plain/') is not null group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime where device is not null;
+
+--correlated subquery implementations
+
+--list_paths via correlated subquery with regex filter in subquery (wrong because subquery is run for once for every row in table)
+explain select path from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<1424122058 and path ~ '^/mnt/blacktar/plain/');
+
+--list via correlated subquery with regex filter in main query (right because correlated subquery is run only for rows selected by filter)
+explain select path from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<1424122058) and path ~ '^/mnt/blacktar/plain/';
+
+--list_paths alternate subquery comparison
+explain select path from paths where device is not null and xtime=(select max(xtime) from paths as alias where alias.path=paths.path and alias.xtime<=1424122058);
+explain select path from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<=1424122058);
+
+--best join implementation with content info join added
+explain select paths.path, mode, content from paths join (select path, max(xtime) as max_xtime from paths where xtime<=1424122058 and substring(path from '^/mnt/blacktar/plain/') is not null group by path) as max_xtimes on max_xtimes.path=paths.path and max_xtimes.max_xtime=paths.xtime join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where paths.device is not null;
+
+--hybrid - correlated subquery for path lookups with join for content info
+explain select path, mode, content from paths join inodes on inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime where paths.device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<1424122058) and path ~ '^/mnt/blacktar/plain/';
+--all correlated subqueries
+explain select path, (select mode from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as mode, (select content from inodes where inodes.device=paths.device and inodes.inode=paths.inode and inodes.ctime=paths.ctime) as content from paths where device is not null and not exists (select * from paths as alias where alias.path=paths.path and alias.xtime>paths.xtime and alias.xtime<1424122058) and path ~ '^/mnt/blacktar/plain/';

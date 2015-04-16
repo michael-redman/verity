@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#clean dbname xtime
+
+psql -tc "delete from paths where exists (select * from paths as alias where alias.path=paths.path and alias.xtime<$2 and alias.xtime>paths.xtime);" "$1"
+psql -tc "delete from paths where not exists (select * from paths as alias where alias.path=paths.path and device is not null);" "$1"
+psql -tc "delete from inodes where not exists (select * from paths where paths.device=inodes.device and paths.inode=inodes.inode and paths.ctime=inodes.ctime)" "$1"
+
+#IN GOD WE TRVST.

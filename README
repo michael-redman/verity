@@ -8,78 +8,35 @@ Verity comes with ABSOLUTELY NO WARRANTY, to the extent permitted by applicable 
 
 ABOUT
 
-Verity maintains a database of HMAC signatures of files you feed it and shows you what content was present when.
-
-LIMITATIONS
-
-Verity uses kernel device numbers to determine which files are hardlinked.  If device numbers change (e.g. different device numbers for USB disks because you plugged them in, in a different order), content will be re-hashed even though it has not changed.  If you are unsure how your system behaves, check your device numbers before running verity_index_paths (the "stat" command will give you the number of the device a file is on).  As a last resort you can update the database manually before running index_paths.
-
-Verity depends on the correctness of inode ctimes - and therefore the system clock - to know when it needs to re-index an inode.
-
-Verity ignores sockets, fifos, and device special files.
-
-Verity is not cryptographically secure because it uses the deprecated SHA-1 algorithm for calculating HMAC signatures.
+Verity maintains a database of hashes of files you feed it and shows you what content was present when.
 
 INSTALLING
 
 Verity was developed on Debian Linux and has not yet been compiled or tested on other systems.
 
-To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libfgetsnull" and "libhexbytes" libraries from github.com/michael-redman.
+To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libhexbytes" library from github.com/michael-redman.
+
+Example command for installing packaged dependencies on Debian:
+
+root@yourhost:~# aptitude install make gcc libpq-dev postgresql
+
+Example command for cloning the other dependency from github:
+
+you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes
 
 The two dependencies you have to build, and Verity, all build and install with the standard "make" and "make install" commands.
 
 If the database queries in Verity cause your system to run out of memory and swap excessively, you probably need to tune Postgres to use less memory - see especially the documentation for "work_mem".  On low memory machines with many files in the data set the large join queries may still run forever, in that case try an alternate set of queries by recompiling Verity with the make option "QUERY_TYPE=CORRELATED_SUBQUERY".
 
-Example commands for installing packaged prereqs & setting up database on Debian:
+Example commands for setting up database on Debian:
 
-yourhost:~# aptitude install git-core make gcc libpq-dev postgresql 
 yourhost:~# su -l postgres
 postgres@yourhost:~$ createuser you
-postgres@yourhost:~$ createdb -O you verity_example_db
+postgres@yourhost:~$ createdb -O you my_verity_db
 postgres@yourhost:~$ exit
 
-you@yourhost:~$ psql verity < /usr/local/share/verity/schema.psql
+you@yourhost:~$ psql my_verity_db < /usr/local/share/verity/schema.psql
 
-Example commands for cloning the other 2 dependencies from github:
-
-you@yourhost:~$ git clone git://github.com/michael-redman/libfgetsnull-git1
-you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes-git1
-
-USE EXAMPLE
-
-you@yourhost:~$ { find ~ -print0; verity_list_paths dbname=verity_example_db; } | sort -uz | verity_index_paths dbname=verity_example_db <(echo -n "my passphrase")
-
-This will index everything in your home dir, plus all paths already existing in the db (to check if the files there were deleted).
-
-Note the list of paths is delimited by nulls not newlines.  You have to use "find -print0" like in the example not just "find".
-
-The example command used "sort -uz" (sort and list only unique lines) on the concatenated lists of paths, to ensure each path is only indexed once.
-
-The second argument to verity_index_paths is a filename to read the passphrase from.  The example uses shell process substitution to read the passphrase from the command line.  If you are on a multi-user system and want to type your passphrase without having it show up in the output of "ps", use the get_passphrase script to read it into a shell variable:
-
-you@yourhost:~$ . /usr/local/share/verity/get_passphrase
-you@yourhost:~$ passphrase=`get_passphrase`
-
-then put the variable inside the double-quotes in the example, e.g. <(echo -n "$passphrase")
-
-Inodes with unchanged ctimes are not re-hashed by default.  You can force re-hash with "verity_index_paths -a"
-
-See the libpq documentation for database connection string syntax.  You can also use a .pgpass file to store some settings.
-
-OTHER COMMANDS
-
-verity_list_paths lists paths already in the database.  Use as in the example above.
-
-verity_content_diff tells you what HMAC signatures are new/missing between two trees you specify at two times you specify.  Example:
-
-you@yourhost:~$ verity_content_diff dbname=verity_example_db /mnt/verity/ `date -d '20130101 0000' +%s` /mnt/verity-backup/ `date -d '20140101 0000' +%s`
-
-For each HMAC in the diff, verity_content_diff will also print the path with the specified prefix where that HMAC was most recently indexed, up to the later of the specified times.  The printed path may have since been indexed as dead or containing different content.  Only one path will be printed for each HMAC even if the data set contained more than one mathcing path.
-
-The output of verity_content_diff is null delimited.  Use "tr \\0 \\n" to make it human-readable.
-
-verity_expire_and_clean deletes the indexing history before a date you specify:
-
-you@yourhost:~$ verity_expire_and_clean verity_example_db `date -d '20140101 0000' +%s`
+After installing please read the further instructions, use examples, and notes on design limitations in the verity(7) manual page.
 
 IN GOD WE TRVST.

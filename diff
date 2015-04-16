@@ -1,0 +1,38 @@
+#!/bin/bash
+
+USE="verity_diff 'db conn string' <(verity_list -c ... | grep ...) <(verity_list -c ... | grep ...)"
+
+if [ "$#" -ne 3 ]; then echo "$USE"; exit 1; fi
+
+mkdir /tmp/$$
+IFS='
+'
+
+db=$1
+left="/tmp/$$/left"; sort -z "$2" > "$left"
+right="/tmp/$$/right"; sort -z "$3" > "$right"
+
+parse_list () {
+	while	IFS= read -r -d '' line; do
+		echo ${line:0:64} >> "$2"
+		done < "$1"; }
+
+parse_list "$left" /tmp/$$/left.hashes.u
+uniq /tmp/$$/left.hashes.u > /tmp/$$/left.hashes
+parse_list "$right" /tmp/$$/right.hashes.u
+uniq /tmp/$$/right.hashes.u > /tmp/$$/right.hashes
+diff /tmp/$$/left.hashes /tmp/$$/right.hashes > /tmp/$$/diff
+
+print_side ()
+{
+	while IFS= read -r -d '' line; do
+		echo -n "$1$line"
+		echo -ne \\0
+		done < <( grep "^$1" /tmp/$$/diff | cut -c 3- | /usr/local/lib/verity/paths -s "$db"); }
+
+print_side '<'
+print_side '>'
+
+rm -rf /tmp/$$
+
+#IN GOD WE TRVST.

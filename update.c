@@ -18,11 +18,17 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <hexbytes.h>
-
 #include "err.h"
 
 extern char sha256_of_file (char const * const, unsigned char[SHA256_DIGEST_LENGTH]);
+
+void hexbytes_print
+        (       const unsigned char * const binary
+                , const unsigned int length
+                , char * const text)
+        {       unsigned int i;
+                for     (i=0;i<length;i++)
+                        sprintf(&text[2*i],"%02hhx",binary[i]); }
 
 static int insert_path
 	(PGconn *db, char const * const path, uint64_t device, uint64_t inode, uint64_t ctime)

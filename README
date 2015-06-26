@@ -14,17 +14,13 @@ INSTALLING
 
 Verity was developed on Debian Linux and has not yet been compiled or tested on other systems.
 
-To build you will need the development packages for Openssl and Postgresql's "libpq", and the "libhexbytes" library from github.com/michael-redman.
+To build you need to install the development packages for Openssl and Postgresql's "libpq".
 
-Example command for installing packaged dependencies on Debian:
+Example command for installing dependencies on Debian:
 
 root@yourhost:~# aptitude install make gcc libpq-dev postgresql
 
-Example command for cloning the other dependency from github:
-
-you@yourhost:~$ git clone git://github.com/michael-redman/libhexbytes
-
-The two dependencies you have to build, and Verity, all build and install with the standard "make" and "make install" commands.
+Verity builds and installs with the standard "make" and "make install" commands.
 
 If the database queries in Verity cause your system to run out of memory and swap excessively, you probably need to tune Postgres to use less memory - see especially the documentation for "work_mem".  On low memory machines with many files in the data set the large join queries may still run forever, in that case try an alternate set of queries by recompiling Verity with the make option "QUERY_TYPE=CORRELATED_SUBQUERY".
 

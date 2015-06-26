@@ -18,7 +18,7 @@ clean:
 	rm -f $(LIBS) $(LIBEXECS) $(PROGS)
 
 update: update.c sha256_of_file.c
-	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lhexbytes -lcrypto -o $@  $^
+	cc $(HACKS) $(CFLAGS) $(LDFLAGS) -lcrypto -o $@  $^
 
 sort: sort.c vector.c
 	cc -Wall -g -fstack-protector -o $@ $^

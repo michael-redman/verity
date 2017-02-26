@@ -21,7 +21,7 @@ Update a uniq'ed list of all paths currently either on the fs (to make sure new 
 
 "Diff" /some/tree against what it was on 2014 March 7:
 
-verity_diff <(verity_list -c -t `date -d 2014-03-07 +%s` -f '^/some/tree/' dbname=your_verity_db) <(verity_list -c -f '^/some/tree' dbname=your_verity_db)
+verity_diff dbname=verity <(verity_list -c -t `date -d 2014-03-07 +%s` -f '^/some/tree/' dbname=your_verity_db) <(verity_list -c -f '^/some/tree' dbname=your_verity_db)
 
 For each hash existing in only one set, verity_diff will print a '<' or '>' indicating which set the hash existed in (like regular "diff"), then the hash, then the path where it was most recently scanned, which might not be the same as the hash's path in the input data, and which also might not still point to a file with that hash. Output records are null-delimited.
 
